@@ -141,10 +141,11 @@ app.post('/api/sign', upload.single('file'), async (req, res) => {
         form.append('message', 'Please review and sign this proposal.');
         form.append('signers[0][email_address]', clientEmail);
         form.append('signers[0][name]', clientName);
+        form.append('type', 'send_document');
         form.append('files[0]', fs.createReadStream(filePath));
 
         const response = await axios.post(
-            'https://api.hellosign.com/v3/signature_request/send',
+            'https://api.hellosign.com/v3/unclaimed_draft/create',
             form,
             {
                 headers: {
