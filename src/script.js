@@ -177,7 +177,7 @@ export function initGenerator() {
         const list = document.getElementById('saved-proposals-list');
         if (!list) return;
         try {
-            const res = await fetch('http://localhost:3001/api/proposals');
+            const res = await fetch('/api/proposals');
             const result = await res.json();
             if (result.message === 'success' && result.data.length > 0) {
                 list.innerHTML = result.data.map(p => `
@@ -231,7 +231,7 @@ export function initGenerator() {
         };
 
         try {
-            const res = await fetch('http://localhost:3001/api/proposals', {
+            const res = await fetch('/api/proposals', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -251,7 +251,7 @@ export function initGenerator() {
 
     async function loadProposal(id) {
         try {
-            const res = await fetch(`http://localhost:3001/api/proposals/${id}`);
+            const res = await fetch(`/api/proposals/${id}`);
             const result = await res.json();
             if (result.message === 'success') {
                 const p = result.data;
@@ -326,9 +326,59 @@ export function initGenerator() {
     document.getElementById('send-signing')?.addEventListener('click', sendToSign);
     fetchProposals();
 
-    async function syncToForm() {
-        // This will be implemented once entry IDs are provided
-        alert('Google Form IDs needed. Please provide the screenshot/link as requested.');
+    // --- GOOGLE FORM CONFIGURATION ---
+    // User: Replace FORM_ID with your form's ID, and the values in ENTRY_IDS with your real entry.XXXX numbers
+    const GOOGLE_FORM_CONFIG = {
+        FORM_ID: 'YOUR_GOOGLE_FORM_ID_HERE', 
+        ENTRY_IDS: {
+            locationName: 'entry.1000001',
+            clientName: 'entry.1000002',
+            clientEmail: 'entry.1000003',
+            clientPhone: 'entry.1000004',
+            packageType: 'entry.1000005',
+            agreementValue: 'entry.1000006',
+            paymentTerms: 'entry.1000007',
+            locationCount: 'entry.1000008',
+            effectivePrice: 'entry.1000009',
+        }
+    };
+
+    function syncToForm() {
+        if (GOOGLE_FORM_CONFIG.FORM_ID === 'YOUR_GOOGLE_FORM_ID_HERE') {
+            alert('Please configure your Google Form ID and Entry IDs in src/script.js (around line 330) before syncing.');
+            return;
+        }
+
+        const rawVal = isHubSpoke && isHubSpoke.checked 
+            ? (parseFloat(hubPriceInput.value) || 0) + ((parseInt(locCount.value) || 1) - 1) * (parseFloat(spokePriceInput.value) || 0)
+            : Math.max(0, parseFloat(agreementValue.value) || 0);
+        const isPercent = isDiscount.checked && Array.from(discountTypes).find(r => r.checked)?.value === 'percentage';
+        const discountVal = (isDiscount.checked ? Math.max(0, parseFloat(discountAmt.value) || 0) : 0);
+        const discountDollars = isPercent ? (rawVal * (discountVal / 100)) : discountVal;
+        const effectiveVal = Math.max(0, rawVal - discountDollars);
+
+        const params = new URLSearchParams([['usp', 'pp_url']]);
+        
+        const map = {
+            [GOOGLE_FORM_CONFIG.ENTRY_IDS.locationName]: locName.value,
+            [GOOGLE_FORM_CONFIG.ENTRY_IDS.clientName]: clientName.value,
+            [GOOGLE_FORM_CONFIG.ENTRY_IDS.clientEmail]: document.getElementById('client-email').value,
+            [GOOGLE_FORM_CONFIG.ENTRY_IDS.clientPhone]: document.getElementById('client-phone').value,
+            [GOOGLE_FORM_CONFIG.ENTRY_IDS.packageType]: packageType.value,
+            [GOOGLE_FORM_CONFIG.ENTRY_IDS.agreementValue]: parseFloat(agreementValue.value) || 0,
+            [GOOGLE_FORM_CONFIG.ENTRY_IDS.paymentTerms]: paymentTerms.value,
+            [GOOGLE_FORM_CONFIG.ENTRY_IDS.locationCount]: parseInt(locCount.value) || 1,
+            [GOOGLE_FORM_CONFIG.ENTRY_IDS.effectivePrice]: effectiveVal.toFixed(2),
+        };
+
+        for (const [key, val] of Object.entries(map)) {
+            if (val !== undefined && val !== '') {
+                params.append(key, val);
+            }
+        }
+
+        const url = `https://docs.google.com/forms/d/e/${GOOGLE_FORM_CONFIG.FORM_ID}/viewform?${params.toString()}`;
+        window.open(url, '_blank');
     }
 
     async function sendToSign() {
@@ -345,7 +395,7 @@ export function initGenerator() {
             formData.append('clientEmail', document.getElementById('client-email').value);
             formData.append('title', `${locName.value || 'BevSpot'} Proposal`);
 
-            const res = await fetch('http://localhost:3001/api/sign', {
+            const res = await fetch('/api/sign', {
                 method: 'POST',
                 body: formData
             });
