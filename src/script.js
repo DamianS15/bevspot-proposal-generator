@@ -400,10 +400,13 @@ export function initGenerator() {
                 body: formData
             });
             const result = await res.json();
-            if (result.message === 'success') {
-                alert('Signature request sent successfully!');
+            if (result.message === 'success' && result.data.unclaimed_draft?.claim_url) {
+                alert('Draft created! Opening your Dropbox Sign dashboard to finalize...');
+                window.open(result.data.unclaimed_draft.claim_url, '_blank');
+            } else if (result.message === 'success') {
+                alert('Signature request/draft created successfully!');
             } else {
-                alert('Error sending for signature: ' + result.error);
+                alert('Error: ' + (result.error || 'Unknown error'));
             }
         } catch (err) {
             console.error('Failed to send for signature:', err);
