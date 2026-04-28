@@ -11,7 +11,7 @@ const fs        = require('fs');
 
 const app  = express();
 const port = process.env.PORT || 3001;
-const DROPBOX_SIGN_KEY = 'a12854a28332838ade3ade491162760bf787c6f5bfb155a4d6715a9fe5cd5fdc';
+const DROPBOX_SIGN_KEY = process.env.DROPBOX_SIGN_KEY;
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -136,7 +136,6 @@ app.post('/api/sign', upload.single('file'), async (req, res) => {
 
         const form = new formData();
         form.append('test_mode', 1);
-        form.append('clientId', DROPBOX_SIGN_KEY);
         form.append('title', title || 'Agreement');
         form.append('subject', 'Please sign your BevSpot Proposal');
         form.append('message', 'Please review and sign this proposal.');
