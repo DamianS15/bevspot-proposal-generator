@@ -48,10 +48,13 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text-primary
 .preview-pill strong{color:var(--text-primary);font-weight:600}
 
 .saved-proposals-container { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-.saved-proposal-item { padding: 10px; background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all .2s; }
+.saved-proposal-item { padding: 10px; background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all .2s; position: relative; }
 .saved-proposal-item:hover { border-color: var(--orange); background: var(--orange-light); }
-.saved-proposal-item .item-name { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+.saved-proposal-item .item-name { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; padding-right: 20px; }
 .saved-proposal-item .item-meta { font-size: 11px; color: var(--text-muted); }
+.saved-proposal-item .delete-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; line-height: 1; opacity: 0; transition: opacity .2s; padding: 2px 6px; border-radius: 4px; }
+.saved-proposal-item:hover .delete-btn { opacity: 1; }
+.saved-proposal-item .delete-btn:hover { background: rgba(0,0,0,0.05); color: #d32f2f; }
 .empty-state { font-size: 12px; color: var(--text-muted); font-style: italic; text-align: center; padding: 20px 0; }
 
 /* CONTENT */

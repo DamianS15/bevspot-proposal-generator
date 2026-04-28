@@ -31,6 +31,7 @@ export function initGenerator() {
     const spokePriceInput = document.getElementById('spoke-price');
     // bsLogoImg DOM lookup removed — logo is now a pre-built data URL (bsLogoDataURL)
     let clientLogoData    = null;
+    let currentProposalId = null;
 
     if (!genBtn) return () => {}; // Prevent runs before DOM is ready
 
@@ -184,16 +185,41 @@ export function initGenerator() {
                     <div class="saved-proposal-item" data-id="${p.id}">
                         <div class="item-name">${p.locationName || 'Unnamed Proposal'}</div>
                         <div class="item-meta">${p.clientName || 'No Client'} • ${new Date(p.createdAt).toLocaleDateString()}</div>
+                        <button class="delete-btn" data-id="${p.id}" title="Delete Proposal">&times;</button>
                     </div>
                 `).join('');
                 list.querySelectorAll('.saved-proposal-item').forEach(item => {
-                    item.addEventListener('click', () => loadProposal(item.dataset.id));
+                    item.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('delete-btn')) {
+                            e.stopPropagation();
+                            deleteProposal(e.target.dataset.id);
+                        } else {
+                            loadProposal(item.dataset.id);
+                        }
+                    });
                 });
             } else {
                 list.innerHTML = '<div class="empty-state">No saved proposals yet</div>';
             }
         } catch (err) {
             console.error('Failed to fetch proposals:', err);
+        }
+    }
+
+    async function deleteProposal(id) {
+        if (!confirm('Are you sure you want to delete this proposal?')) return;
+        try {
+            const res = await fetch(`/api/proposals/${id}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.message === 'success') {
+                if (currentProposalId === id) {
+                    newProposal();
+                }
+                fetchProposals();
+            }
+        } catch (err) {
+            console.error('Failed to delete proposal:', err);
+            alert('Error deleting proposal');
         }
     }
 
@@ -231,14 +257,19 @@ export function initGenerator() {
         };
 
         try {
-            const res = await fetch('/api/proposals', {
-                method: 'POST',
+            const method = currentProposalId ? 'PUT' : 'POST';
+            const url = currentProposalId ? `/api/proposals/${currentProposalId}` : '/api/proposals';
+            const res = await fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
             const result = await res.json();
             if (result.message === 'success') {
                 alert('Proposal saved successfully!');
+                if (!currentProposalId && result.data && result.data.id) {
+                    currentProposalId = result.data.id;
+                }
                 fetchProposals();
             }
         } catch (err) {
@@ -255,6 +286,7 @@ export function initGenerator() {
             const result = await res.json();
             if (result.message === 'success') {
                 const p = result.data;
+                currentProposalId = p.id;
                 
                 // Fill basic details
                 locName.value = p.locationName || '';
@@ -321,6 +353,56 @@ export function initGenerator() {
         }
     }
 
+    function newProposal() {
+        currentProposalId = null;
+        
+        // Reset inputs
+        locName.value = '';
+        clientName.value = '';
+        document.getElementById('client-email').value = '';
+        document.getElementById('client-phone').value = '';
+        packageType.value = '';
+        listPriceInput.value = '';
+        agreementValue.value = '';
+        agreementLength.value = 12;
+        paymentTerms.value = 'annual';
+        firstPayDate.value = '';
+        document.getElementById('proposal-date').value = new Date().toISOString().split('T')[0];
+
+        // Toggles
+        const setToggle = (checkId, toggleId, expandId, val) => {
+            const c = document.getElementById(checkId);
+            const t = document.getElementById(toggleId);
+            const e = document.getElementById(expandId);
+            if (c) {
+                c.checked = !!val;
+                if (t) t.classList.toggle('checked', c.checked);
+                if (e) e.classList.toggle('open', c.checked);
+            }
+        };
+        
+        setToggle('is-revised', 'revised-toggle', null, false);
+        setToggle('is-multi-location', 'multi-location-toggle', 'multi-location-section', false);
+        setToggle('is-promo', 'promo-toggle', 'promo-section', false);
+        setToggle('is-discount', 'discount-toggle', 'discount-section', false);
+        setToggle('is-hub-spoke', 'hub-spoke-toggle', 'hub-spoke-section', false);
+
+        locCount.value = 2;
+        promoMonths.value = '';
+        discountAmt.value = '';
+        hubPriceInput.value = '';
+        spokePriceInput.value = '';
+
+        discountTypes[0].checked = true;
+        if (discountSym) discountSym.textContent = discountTypes[0].value === 'percentage' ? '%' : '$';
+
+        genLocInputs();
+        updateTOS();
+        updatePreview();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.getElementById('new-proposal')?.addEventListener('click', newProposal);
     document.getElementById('save-proposal')?.addEventListener('click', saveProposal);
     document.getElementById('sync-form')?.addEventListener('click', syncToForm);
     document.getElementById('send-signing')?.addEventListener('click', sendToSign);
